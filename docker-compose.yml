@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  smartlog-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smartlog-api
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/smartlog
+      - SPRING_DATASOURCE_USERNAME=smartlog
+      - SPRING_DATASOURCE_PASSWORD=smartlog123
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - smartlog-network
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: smartlog-postgres
+    environment:
+      - POSTGRES_DB=smartlog
+      - POSTGRES_USER=smartlog
+      - POSTGRES_PASSWORD=smartlog123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - smartlog-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smartlog"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Optional: PgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: smartlog-pgadmin
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@smartlog.com
+      - PGADMIN_DEFAULT_PASSWORD=admin123
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - smartlog-network
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+    driver: local
+
+networks:
+  smartlog-network:
+    driver: bridge
