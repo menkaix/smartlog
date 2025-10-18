@@ -71,44 +71,64 @@ L'application démarre sur `http://localhost:8080`
 
 ## Endpoints de l'API
 
-### Créer un rapport de bug
+### 1. Créer un rapport de bug
 
 **POST** `/api/bug-reports`
 
+**Exemple complet :**
 ```bash
 curl -X POST http://localhost:8080/api/bug-reports \
   -H "Content-Type: application/json" \
   -d '{
-    "title": "App crashes on startup",
-    "description": "The app crashes immediately after opening",
+    "title": "Crash lors de la connexion",
+    "description": "L'\''application plante lorsque l'\''utilisateur tente de se connecter",
     "platform": "ANDROID",
-    "appVersion": "1.0.5",
-    "osVersion": "Android 14",
-    "deviceModel": "Samsung Galaxy S23",
-    "severity": "CRITICAL",
-    "stackTrace": "java.lang.NullPointerException at MainActivity.onCreate()",
+    "appVersion": "2.1.0",
+    "osVersion": "Android 13",
+    "deviceModel": "Samsung Galaxy S22",
+    "severity": "HIGH",
+    "stackTrace": "java.lang.NullPointerException at com.example.LoginActivity.onCreate()",
     "userEmail": "user@example.com",
-    "stepsToReproduce": "1. Open app\n2. Crash occurs"
+    "stepsToReproduce": "1. Ouvrir l'\''app\n2. Cliquer sur Se connecter\n3. L'\''app crash"
   }'
 ```
 
-### Récupérer tous les rapports
+**Exemple minimal (champs obligatoires uniquement) :**
+```bash
+curl -X POST http://localhost:8080/api/bug-reports \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Bug simple",
+    "description": "Description du bug",
+    "platform": "WEB",
+    "appVersion": "1.0.0",
+    "osVersion": "Windows 11",
+    "deviceModel": "Chrome 120"
+  }'
+```
+
+### 2. Récupérer tous les rapports
 
 **GET** `/api/bug-reports`
 
 ```bash
-curl http://localhost:8080/api/bug-reports
+curl -X GET http://localhost:8080/api/bug-reports
 ```
 
-### Récupérer un rapport spécifique
+**Avec formatage JSON (nécessite jq) :**
+```bash
+curl -X GET http://localhost:8080/api/bug-reports | jq
+```
+
+### 3. Récupérer un rapport spécifique
 
 **GET** `/api/bug-reports/{id}`
 
 ```bash
-curl http://localhost:8080/api/bug-reports/1
+curl -X GET http://localhost:8080/api/bug-reports/1
 ```
 
-### Filtrer par plateforme
+### 4. Filtrer par plateforme
 
 **GET** `/api/bug-reports/platform/{platform}`
 
@@ -116,39 +136,113 @@ Plateformes disponibles: `ANDROID`, `IOS`, `WEB`
 
 ```bash
 # Rapports Android
-curl http://localhost:8080/api/bug-reports/platform/ANDROID
+curl -X GET http://localhost:8080/api/bug-reports/platform/ANDROID
 
 # Rapports iOS
-curl http://localhost:8080/api/bug-reports/platform/IOS
+curl -X GET http://localhost:8080/api/bug-reports/platform/IOS
 
 # Rapports Web
-curl http://localhost:8080/api/bug-reports/platform/WEB
+curl -X GET http://localhost:8080/api/bug-reports/platform/WEB
 ```
 
-### Filtrer par statut
+### 5. Filtrer par statut
 
 **GET** `/api/bug-reports/status/{status}`
 
 Statuts disponibles: `OPEN`, `IN_PROGRESS`, `RESOLVED`, `CLOSED`
 
 ```bash
-curl http://localhost:8080/api/bug-reports/status/OPEN
+# Bugs ouverts
+curl -X GET http://localhost:8080/api/bug-reports/status/OPEN
+
+# Bugs en cours
+curl -X GET http://localhost:8080/api/bug-reports/status/IN_PROGRESS
+
+# Bugs résolus
+curl -X GET http://localhost:8080/api/bug-reports/status/RESOLVED
+
+# Bugs fermés
+curl -X GET http://localhost:8080/api/bug-reports/status/CLOSED
 ```
 
-### Mettre à jour le statut d'un rapport
+### 6. Mettre à jour le statut d'un rapport
 
-**PATCH** `/api/bug-reports/{id}/status`
+**PATCH** `/api/bug-reports/{id}/status?status={status}`
 
 ```bash
+# Passer en IN_PROGRESS
 curl -X PATCH "http://localhost:8080/api/bug-reports/1/status?status=IN_PROGRESS"
+
+# Passer en RESOLVED
+curl -X PATCH "http://localhost:8080/api/bug-reports/1/status?status=RESOLVED"
+
+# Passer en CLOSED
+curl -X PATCH "http://localhost:8080/api/bug-reports/1/status?status=CLOSED"
 ```
 
-### Supprimer un rapport
+### 7. Supprimer un rapport
 
 **DELETE** `/api/bug-reports/{id}`
 
 ```bash
 curl -X DELETE http://localhost:8080/api/bug-reports/1
+```
+
+**Avec affichage du code HTTP :**
+```bash
+curl -X DELETE http://localhost:8080/api/bug-reports/1 -w "\nHTTP Status: %{http_code}\n"
+```
+
+---
+
+## Scénarios d'utilisation
+
+### Scénario complet : Créer et suivre un bug
+
+```bash
+# 1. Créer un bug
+curl -X POST http://localhost:8080/api/bug-reports \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Erreur 500 sur /api/users",
+    "description": "Le serveur renvoie une erreur 500",
+    "platform": "WEB",
+    "appVersion": "3.0.1",
+    "osVersion": "Windows 11",
+    "deviceModel": "Firefox 121",
+    "severity": "CRITICAL"
+  }'
+
+# 2. Lister tous les bugs
+curl -X GET http://localhost:8080/api/bug-reports
+
+# 3. Mettre à jour le statut à IN_PROGRESS
+curl -X PATCH "http://localhost:8080/api/bug-reports/1/status?status=IN_PROGRESS"
+
+# 4. Marquer comme résolu
+curl -X PATCH "http://localhost:8080/api/bug-reports/1/status?status=RESOLVED"
+
+# 5. Fermer le bug
+curl -X PATCH "http://localhost:8080/api/bug-reports/1/status?status=CLOSED"
+```
+
+### Options cURL utiles
+
+```bash
+# Afficher les headers de réponse
+curl -i -X GET http://localhost:8080/api/bug-reports
+
+# Mode verbeux (debugging)
+curl -v -X GET http://localhost:8080/api/bug-reports
+
+# Sauvegarder la réponse dans un fichier
+curl -X GET http://localhost:8080/api/bug-reports -o bugs.json
+
+# Timeout (10 secondes)
+curl -X GET http://localhost:8080/api/bug-reports --max-time 10
+
+# Suivre les redirections
+curl -L -X GET http://localhost:8080/api/bug-reports
 ```
 
 ## Modèle de données
