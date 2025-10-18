@@ -7,7 +7,7 @@ API REST pour recevoir et gérer des rapports de bug depuis des applications mob
 - Java 21
 - Spring Boot 3.5.6
 - Spring Data JPA
-- H2 Database (en mémoire) / PostgreSQL (production)
+- PostgreSQL 16
 - Lombok
 - Bean Validation
 - Docker & Docker Compose
@@ -18,6 +18,7 @@ API REST pour recevoir et gérer des rapports de bug depuis des applications mob
 ### Option 1 : Avec Docker (Recommandé)
 
 #### Prérequis
+
 - Docker
 - Docker Compose
 
@@ -38,6 +39,7 @@ docker-compose down -v
 ```
 
 L'application sera accessible sur :
+
 - API: `http://localhost:8080`
 - PgAdmin: `http://localhost:5050` (admin@smartlog.com / admin123)
 
@@ -47,13 +49,37 @@ L'application sera accessible sur :
 # Construire l'image
 docker build -t smartlog-api .
 
-# Lancer le conteneur avec H2
-docker run -p 8080:8080 smartlog-api
+# Lancer le conteneur (nécessite PostgreSQL en cours d'exécution)
+docker run -p 8080:8080 \
+  -e SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5432/smartlog \
+  -e SPRING_DATASOURCE_USERNAME=smartlog \
+  -e SPRING_DATASOURCE_PASSWORD=smartlog123 \
+  smartlog-api
 ```
 
 ### Option 2 : En local (développement)
 
+#### Prérequis supplémentaires
+
+- PostgreSQL 16 ou supérieur installé et en cours d'exécution
+- Base de données `smartlog` créée
+
+#### Créer la base de données PostgreSQL
+
+```bash
+# Se connecter à PostgreSQL
+psql -U postgres
+
+# Créer la base de données et l'utilisateur
+CREATE DATABASE smartlog;
+CREATE USER smartlog WITH PASSWORD 'smartlog123';
+GRANT ALL PRIVILEGES ON DATABASE smartlog TO smartlog;
+```
+
+### Option 2 : En local (suite)
+
 #### Prérequis
+
 - JDK 21 ou supérieur
 - Gradle (wrapper inclus)
 
@@ -76,6 +102,7 @@ L'application démarre sur `http://localhost:8080`
 **POST** `/api/bug-reports`
 
 **Exemple complet :**
+
 ```bash
 curl -X POST http://localhost:8080/api/bug-reports \
   -H "Content-Type: application/json" \
@@ -94,6 +121,7 @@ curl -X POST http://localhost:8080/api/bug-reports \
 ```
 
 **Exemple minimal (champs obligatoires uniquement) :**
+
 ```bash
 curl -X POST http://localhost:8080/api/bug-reports \
   -H "Content-Type: application/json" \
@@ -116,6 +144,7 @@ curl -X GET http://localhost:8080/api/bug-reports
 ```
 
 **Avec formatage JSON (nécessite jq) :**
+
 ```bash
 curl -X GET http://localhost:8080/api/bug-reports | jq
 ```
@@ -189,6 +218,7 @@ curl -X DELETE http://localhost:8080/api/bug-reports/1
 ```
 
 **Avec affichage du code HTTP :**
+
 ```bash
 curl -X DELETE http://localhost:8080/api/bug-reports/1 -w "\nHTTP Status: %{http_code}\n"
 ```
@@ -249,22 +279,23 @@ curl -L -X GET http://localhost:8080/api/bug-reports
 
 ### BugReportRequest (JSON)
 
-| Champ | Type | Requis | Description |
-|-------|------|--------|-------------|
-| title | string | Oui | Titre du bug |
-| description | string | Oui | Description détaillée |
-| platform | enum | Oui | ANDROID, IOS, ou WEB |
-| appVersion | string | Oui | Version de l'application |
-| osVersion | string | Oui | Version du système d'exploitation |
-| deviceModel | string | Oui | Modèle de l'appareil |
-| severity | enum | Non | LOW, MEDIUM, HIGH, CRITICAL (défaut: MEDIUM) |
-| stackTrace | string | Non | Trace de la pile d'exécution |
-| userEmail | string | Non | Email de l'utilisateur |
-| stepsToReproduce | string | Non | Étapes pour reproduire le bug |
+| Champ            | Type   | Requis | Description                                  |
+| ---------------- | ------ | ------ | -------------------------------------------- |
+| title            | string | Oui    | Titre du bug                                 |
+| description      | string | Oui    | Description détaillée                        |
+| platform         | enum   | Oui    | ANDROID, IOS, ou WEB                         |
+| appVersion       | string | Oui    | Version de l'application                     |
+| osVersion        | string | Oui    | Version du système d'exploitation            |
+| deviceModel      | string | Oui    | Modèle de l'appareil                         |
+| severity         | enum   | Non    | LOW, MEDIUM, HIGH, CRITICAL (défaut: MEDIUM) |
+| stackTrace       | string | Non    | Trace de la pile d'exécution                 |
+| userEmail        | string | Non    | Email de l'utilisateur                       |
+| stepsToReproduce | string | Non    | Étapes pour reproduire le bug                |
 
 ### BugReportResponse (JSON)
 
 Contient tous les champs du modèle plus :
+
 - `id` : Identifiant unique
 - `status` : Statut actuel (OPEN, IN_PROGRESS, RESOLVED, CLOSED)
 - `createdAt` : Date de création
@@ -321,16 +352,20 @@ Contient tous les champs du modèle plus :
 }
 ```
 
-## Console H2
+## PgAdmin - Interface de gestion PostgreSQL
 
-Pour visualiser et interroger la base de données :
+Pour visualiser et interroger la base de données via l'interface web :
 
-1. Accéder à `http://localhost:8080/h2-console`
-2. Configuration :
-   - JDBC URL: `jdbc:h2:mem:smartlog`
-   - Username: `sa`
-   - Password: (laisser vide)
-3. Cliquer sur "Connect"
+1. Accéder à `http://localhost:5050`
+2. Se connecter avec :
+   - Email: `admin@smartlog.com`
+   - Password: `admin123`
+3. Ajouter un nouveau serveur :
+   - Host: `postgres` (ou `localhost` si PgAdmin est en local)
+   - Port: `5432`
+   - Database: `smartlog`
+   - Username: `smartlog`
+   - Password: `smartlog123`
 
 ## Gestion des erreurs
 
@@ -340,15 +375,13 @@ L'API retourne des réponses d'erreur structurées :
 {
   "status": 400,
   "message": "Validation failed",
-  "errors": [
-    "Title is required",
-    "Platform is required"
-  ],
+  "errors": ["Title is required", "Platform is required"],
   "timestamp": "2025-10-17T10:30:00"
 }
 ```
 
 Codes d'erreur :
+
 - `400` : Validation échouée ou paramètre invalide
 - `404` : Ressource non trouvée
 - `500` : Erreur serveur interne
@@ -377,6 +410,7 @@ SPRING_DATASOURCE_PASSWORD=smartlog123
 ### Configuration locale
 
 Modifier `src/main/resources/application.properties` pour :
+
 - Changer le port : `server.port=8080`
 - Configurer une base de données persistante (PostgreSQL, MySQL)
 - Ajuster les niveaux de logging
@@ -386,11 +420,13 @@ Modifier `src/main/resources/application.properties` pour :
 ### Services
 
 1. **smartlog-app** : Application Spring Boot
+
    - Port: 8080
    - Dépend de PostgreSQL
    - Health check via Actuator
 
 2. **postgres** : Base de données PostgreSQL 16
+
    - Port: 5432
    - Persistance via volume Docker
    - Health check intégré
