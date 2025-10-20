@@ -7,6 +7,8 @@ import com.menkaix.smartlog.model.BugReport;
 import com.menkaix.smartlog.repository.BugReportRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,11 +46,9 @@ public class BugReportService {
     }
 
     @Transactional(readOnly = true)
-    public List<BugReportResponse> getAllBugReports() {
-        return bugReportRepository.findAll()
-                .stream()
-                .map(BugReportResponse::fromEntity)
-                .collect(Collectors.toList());
+    public Page<BugReportResponse> getAllBugReports(Pageable pageable) {
+        return bugReportRepository.findAll(pageable)
+                .map(BugReportResponse::fromEntity);
     }
 
     @Transactional(readOnly = true)
@@ -59,19 +59,15 @@ public class BugReportService {
     }
 
     @Transactional(readOnly = true)
-    public List<BugReportResponse> getBugReportsByPlatform(BugReport.Platform platform) {
-        return bugReportRepository.findByPlatform(platform)
-                .stream()
-                .map(BugReportResponse::fromEntity)
-                .collect(Collectors.toList());
+    public Page<BugReportResponse> getBugReportsByPlatform(BugReport.Platform platform, Pageable pageable) {
+        return bugReportRepository.findByPlatform(platform, pageable)
+                .map(BugReportResponse::fromEntity);
     }
 
     @Transactional(readOnly = true)
-    public List<BugReportResponse> getBugReportsByStatus(BugReport.Status status) {
-        return bugReportRepository.findByStatus(status)
-                .stream()
-                .map(BugReportResponse::fromEntity)
-                .collect(Collectors.toList());
+    public Page<BugReportResponse> getBugReportsByStatus(BugReport.Status status, Pageable pageable) {
+        return bugReportRepository.findByStatus(status, pageable)
+                .map(BugReportResponse::fromEntity);
     }
 
     @Transactional

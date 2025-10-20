@@ -6,6 +6,10 @@ import com.menkaix.smartlog.model.BugReport;
 import com.menkaix.smartlog.service.BugReportService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -31,12 +35,13 @@ public class BugReportController {
     }
 
     /**
-     * Get all bug reports
-     * GET /api/bug-reports
+     * Get all bug reports with pagination
+     * GET /api/bug-reports?page=0&size=20&sort=createdAt,desc
      */
     @GetMapping
-    public ResponseEntity<List<BugReportResponse>> getAllBugReports() {
-        List<BugReportResponse> reports = bugReportService.getAllBugReports();
+    public ResponseEntity<Page<BugReportResponse>> getAllBugReports(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<BugReportResponse> reports = bugReportService.getAllBugReports(pageable);
         return ResponseEntity.ok(reports);
     }
 
@@ -51,22 +56,26 @@ public class BugReportController {
     }
 
     /**
-     * Get bug reports by platform (ANDROID, IOS, WEB)
-     * GET /api/bug-reports/platform/{platform}
+     * Get bug reports by platform (ANDROID, IOS, WEB) with pagination
+     * GET /api/bug-reports/platform/{platform}?page=0&size=20&sort=createdAt,desc
      */
     @GetMapping("/platform/{platform}")
-    public ResponseEntity<List<BugReportResponse>> getBugReportsByPlatform(@PathVariable BugReport.Platform platform) {
-        List<BugReportResponse> reports = bugReportService.getBugReportsByPlatform(platform);
+    public ResponseEntity<Page<BugReportResponse>> getBugReportsByPlatform(
+            @PathVariable BugReport.Platform platform,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<BugReportResponse> reports = bugReportService.getBugReportsByPlatform(platform, pageable);
         return ResponseEntity.ok(reports);
     }
 
     /**
-     * Get bug reports by status (OPEN, IN_PROGRESS, RESOLVED, CLOSED)
-     * GET /api/bug-reports/status/{status}
+     * Get bug reports by status (OPEN, IN_PROGRESS, RESOLVED, CLOSED) with pagination
+     * GET /api/bug-reports/status/{status}?page=0&size=20&sort=createdAt,desc
      */
     @GetMapping("/status/{status}")
-    public ResponseEntity<List<BugReportResponse>> getBugReportsByStatus(@PathVariable BugReport.Status status) {
-        List<BugReportResponse> reports = bugReportService.getBugReportsByStatus(status);
+    public ResponseEntity<Page<BugReportResponse>> getBugReportsByStatus(
+            @PathVariable BugReport.Status status,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<BugReportResponse> reports = bugReportService.getBugReportsByStatus(status, pageable);
         return ResponseEntity.ok(reports);
     }
 
